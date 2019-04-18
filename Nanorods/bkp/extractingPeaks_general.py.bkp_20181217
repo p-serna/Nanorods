@@ -1,0 +1,176 @@
+
+# Inicialo como
+# CUDA_VISIBLE_DEVICES="" ipython3
+
+from numpy import *
+from matplotlib.pylab import *
+import sys
+import os
+from keras.models import load_model
+import cv2
+from sub.subs import *
+
+
+visuallog = False
+
+wdir = "/export/home1/users/bssn/serna/anastasia/ROIS_raw/FullMovies/"
+
+
+if len(sys.argv)>1:
+    ifile = sys.argv[1] 
+    print("Trying to print args:",sys.argv[1],sys.argv[2])
+    print(ifile)
+
+    try:
+        ifile = int(ifile)
+
+    except:
+        print("I don't know what happened, we were expecting an argument")
+    if len(sys.argv)>2:
+        wdir = sys.argv[2]
+    else:
+        wdir = "./"
+else:
+    ifile = 0
+    wdir = "./"
+    print("No argument, we do it for file number 0")
+
+
+dirs = [wdir]
+dirt =  wdir
+basedir = dirt
+files = os.listdir(basedir)
+if dirt[-1] != '/':
+    dirt = dirt+'/'
+wdir = dirt
+dfiles = []
+for f in files:
+    if f[-4:]=='.tif': dfiles.append(dirt+f)
+
+
+dfiles.sort()
+print("We will do analysis for file "+dfiles[ifile])
+
+
+# dirs = ["/export/home1/users/bssn/serna/anastasia/ROIS_raw/FullMovies"]
+outputdir = wdir+"ROIs/"
+
+if not os.path.isdir(outputdir):
+    try:
+        os.system("mkdir "+outputdir)
+    except ValueError:
+        print("I cannot create the folder for the output!")
+        raise SystemExit(0)
+ 
+
+
+
+# ----------------------------------------------------------------
+# We read the file.     
+
+f = dfiles[ifile]
+movie = readBigtifFile(f)
+tduration, mheight,mwidth = movie.shape
+
+# ----------------------------------------------------------------
+# We could correct the counts per frame with times     
+
+# ~ times = gettimes(f)
+
+
+#-----------------------------------------------------------------
+# This part is to identify the local maxima
+
+im1 = mean(movie,axis=0)
+
+imA = im1[:,:512]
+imB = im1[:,512:]
+
+posA = extractpeaks2d(imA,kernel=5)
+
+posB = extractpeaks2d(imB,kernel=5)
+
+height,width = imA.shape
+posA = stripborder(posA,height,width)
+posB = stripborder(posB,height,width)
+
+savetxt(outputdir+"posA"+str(ifile).zfill(4)+".dat",posA)
+savetxt(outputdir+"posB"+str(ifile).zfill(4)+".dat",posA)
+
+#--------------------- Visualization   
+if visuallog:
+    ion() 
+    visualization(imA,posA[:200])
+
+# ----------------------------------------------------------------
+# Now that we have peaks, we can classify them
+model = load_model("/users/bssn/serna/anastasia/ROIS_raw/FullMovies/classifier20181121_17.h5")
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"   # see issue #152
+os.environ["CUDA_VISIBLE_DEVICES"] = ""
+from tensorflow.python.client import device_lib
+print(device_lib.list_local_devices())
+from sub.sub_Classifier import extract_data_Class20181121 as extract_data
+from sub.sub_Classifier import formatClass20181121 as formatXt
+
+ 
+ths = zeros(len(posA))
+for i,cl in enumerate(posA):
+    Xtest = []
+    roi = selROI(movie,cl[0],cl[1],t=0,size=1,xlim=(0,mwidth//2),ylim=(0,mheight))
+    roi = roi.reshape(tduration,3*3)
+
+    for j in range(2):      
+        xtt = extract_data(roi)
+        Xtest.append(xtt)
+    Xtest = formatXt(Xtest)
+    Ytestp = model.predict(Xtest)
+    Yres = Ytestp.flatten()
+    Yres = mean(Yres)
+    ths[i] = Yres
+
+fposA = posA[ths>0.5,:]
+
+if visuallog:
+    visualization(imA,fposA[:300],figname="Blue channel")
+    
+savetxt(outputdir+"FposA"+str(ifile).zfill(4)+".dat",fposA)
+
+ths = zeros(len(posB))
+for i,cl in enumerate(posB):
+    Xtest = []
+    roi = selROI(movie[:,:,512:],cl[0],cl[1],t=0,size=1,xlim=(0,mwidth//2),ylim=(0,mheight))
+    roi = roi.reshape(tduration,3*3)
+    for j in range(2):      
+        xtt = extract_data(roi)
+        Xtest.append(xtt)
+    Xtest = formatXt(Xtest)
+    Ytestp = model.predict(Xtest)
+    Yres = Ytestp.flatten()
+    Yres = mean(Yres)
+    ths[i] = Yres
+
+savetxt(outputdir+"FposB"+str(ifile).zfill(4)+".dat",posB[ths>0.5,:])
+
+fposB = posB[ths>0.5,:]
+if visuallog:
+    visualization(imB,fposB[:300],figname="Red channel")
+    v = transfpar(fposA,fposB,transform = 2)
+    v0 = v[:2]
+    v1 = v[2:4]
+    v2 = array([[0,v[4]],[v[5],0]])
+    fposAinB =  fposA*v1+v0+dot(v2,fposA.transpose()).transpose()
+    visualization(imB,fposAinB[:300],figname="Red channel",color='green')
+
+for i,cl in enumerate(fposA):
+    roi = selROI(movie,cl[0],cl[1],size=2)
+    roi = roi.reshape(tduration,5*5)
+    
+    save(outputdir+"roi_s"+str(ifile).zfill(2)+"A"+str(i).zfill(4)+".npy",roi)
+for i,cl in enumerate(fposB):
+    roi = selROI(movie[:,:,512:],cl[0],cl[1],size=2)
+    roi = roi.reshape(tduration,5*5)
+    
+    save(outputdir+"roi_s"+str(ifile).zfill(2)+"B"+str(i).zfill(4)+".npy",roi)
+
+if visuallog:
+    show()
