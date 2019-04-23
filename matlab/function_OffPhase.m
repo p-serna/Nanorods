@@ -1,0 +1,11 @@
+function Signal_OffPhase=OffPhase(Signal)
+% X=Signal(1,:);
+% Signal_OffPhase=Signal(2:end,:);
+% Signal_OffPhase=cat(1, Signal_OffPhase, X); 
+Nframes=size(Signal,1);
+NROI=size(Signal,2);
+temp1=reshape(Signal, 4, Nframes/4, NROI);
+temp2=temp1([1 3],:,:);
+temp1([1 3],:,:)=[];
+Signal_OffPhase=cat(1,temp2,temp1);
+Signal_OffPhase=reshape(Signal_OffPhase, Nframes,NROI);
