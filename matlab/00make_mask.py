@@ -1,36 +1,45 @@
-%% --- user defined variables --- %
-folder='C:\Users\ludwig\Documents\MATLAB\19_02_05_pd1_02_div4_NR_BeRST';
-file_wave='cell8_BeRST.tif'; 
-f=3; %averaging factor for the mask
+#%% --- user defined variables --- %
+#folder='C:\Users\ludwig\Documents\MATLAB\19_02_05_pd1_02_div4_NR_BeRST';
+#file_wave='cell8_BeRST.tif'; 
+#f=3; %averaging factor for the mask
 
-%EMCCD-CMOS calib results
-[ax ay bx by]=EMCCD_CMOS_calib([folder, '\EMCCD_CMOS_calib']);
+#%EMCCD-CMOS calib results
+#[ax ay bx by]=EMCCD_CMOS_calib([folder, '\EMCCD_CMOS_calib']);
+import sys
+from tifmethods import readtifInfo, readBigTifFile, readtifImage
 
+def createMask(file_wave,calibpar = None, folder = None, avgf = 3):
+    '''file_wave: name of the file with pixels very correlated with voltage wave
+       calibpar: parameters of calibration ax,ay,bx,by
+       avgf: averaging factor for the mask 
+    '''
+    if folder is None:
+        if file_wave.find('/') >=0:
+            fsp = file_wave.split('/')
+            folder = '/'.join(fsp[:-1])+'/'
+            file_wave = fsp[-1]
+        if file_wave.find('\\') >=0:
+            fsp = file_wave.split('/')
+            folder = '\\'.join(fsp[:-1])+'\\'
+            file_wave = fsp[-1]
+    if calibpar is None:
+        calibpar = EMCCD_CMOS_calib(folder+'EMCCD_CMOS_calib')
 
-% 
+    # We extract basic info: number of frames and interval (is this the average?)
+    info = readtifInfo(folder+'image files/'+file_wave)
 
-% extract some info from the file
-info = imfinfo(fullfile(folder,'\image files', file_wave));
-info = info(1, :);
-%Number of frames from tags
-NFramesStr = regexp(info.ImageDescription, 'images=(\d*)', 'tokens');
-Nframes_wave = str2double(NFramesStr{1});
+    NframesStr = [d for d in info[270].split('\n') if d.find('frames')>=0][0].split('=')[-1]
+    # Why float and not integer
+    Nframes_wave = float(NFramesStr)
 
+    TacqStr = [d for d in info[270].split('\n') if d.find('finterval')>=0][0].split('=')[-1]
+    Tacq_wave = float(TacqStr)
 
+    # Generate stimulation trace
+    Stim_wave = (((arange(Nframes_wave).reshape(Nframes_wave//2,2)+1)%2)*(-60.0)).flatten()
 
-%Tac shutter intervals.
-TacqStr = regexp(info.ImageDescription, 'finterval=(\d?\D?\d*)','tokens');
-Tacq_wave = str2double(TacqStr{1});
-
-
-clearvars imcalib pts_calib TacqStr pts_calib_EMCCD pts_calib_CMOS
-
-% Generating stimulation trace
-Stim_wave=repmat([-60 0], 1, Nframes_wave/2)';
-
-
-% read movie wave
-Movie_wave=ReadLongMovie(fullfile(folder, '\image files', file_wave), Nframes_wave);
+    # read movie wave
+    Movie_wave=readBigTifFile(folder+'image files/'+file_wave), Nframes_wave);
 
 SumMovie_wave=sum(Movie_wave,3);
 
@@ -86,7 +95,6 @@ clearvars X Y C thld T
 %% 
 
 % Filter and Expand the Mask
-%                         npixels, axis
 temp1=movmean (Mask_EMCCD,5,1,'omitnan');
 temp2=movmean (temp1,5,2,'omitnan');
 temp3=Mask_EMCCD;

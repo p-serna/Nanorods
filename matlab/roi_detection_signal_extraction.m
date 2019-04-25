@@ -154,6 +154,18 @@ for f=1:length(folders)
         pts_blue=pts_blue_center(ROI_selected,:);
         pts_red=pts_red_center(ROI_selected,:);
         
+
+
+
+
+
+
+
+
+
+
+
+
         %%  reading control file
           
         folder_contrl=fullfile(root, folders{f}, folders_contrl);

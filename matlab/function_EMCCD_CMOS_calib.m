@@ -22,7 +22,7 @@ CMOS=CMOS(:,1:size(CMOS,2)/2,:);
 k=0;
 n=1;
 m=1;
-for i=1:size(files_csv) %real traces
+for i in 1:size(files_csv) %real traces
     file = files_csv(i).name;
     k=strfind(file, 'CMOS');
     if k~=0
