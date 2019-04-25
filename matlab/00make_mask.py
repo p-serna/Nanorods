@@ -39,70 +39,51 @@ def createMask(file_wave,calibpar = None, folder = None, avgf = 3):
     Stim_wave = (((arange(Nframes_wave).reshape(Nframes_wave//2,2)+1)%2)*(-60.0)).flatten()
 
     # read movie wave
-    Movie_wave=readBigTifFile(folder+'image files/'+file_wave), Nframes_wave);
+    Movie_wave=readBigTifFile(folder+'image files/'+file_wave)
+    SumMovie_wave=Movie_wave.sum(axis=0)
 
-SumMovie_wave=sum(Movie_wave,3);
+    # It should be the other way around! sizeY, sizeX
+    SizeX, SizeY = SumMovie_wave.shape
+    
 
-SizeX=size(SumMovie_wave, 1);
-SizeY=size(SumMovie_wave, 2);
+    # calculation of correlation coefficient matrix between NR wave movie and a stimulation trace
+    Nframes_wave, SizeX, SizeY = Movie_wave.shape
+    
+    #for x=1:SizeX
+    #    for y=1:SizeY
+    #         temp=corrcoef(Movie_wave(x,y,:),Stim_wave);
+    #         CorCoef_wave(x,y)=temp(2);
 
-
-% %Plot images
-% temp=SumMovie_wave;
-% img=temp/max(max(temp));
-% img1=imadjust(img);
-% figure;
-% imshow(img1)
-
-clearvars img img1 temp
-
-
-% calculation of correlation coefficient matrix between NR wave movie and a stimulation trace
-SizeX=size(Movie_wave,1);
-SizeY=size(Movie_wave,2);
-clearvars CorCoef_wave 
-for x=1:SizeX
-    for y=1:SizeY
-         temp=corrcoef(Movie_wave(x,y,:),Stim_wave);
-         CorCoef_wave(x,y)=temp(2);
-    end
-end
-
-clearvars temp x y;
-% 
+    cormap = map(lambda x: np.corrcoef(x,Stim_wave)[1,0], Movie_wave.reshape(Nframes_wave,SizeX*SizeY).transpose())
+    CorCoef_wave = list(cormap)
+    CorCoef_wave = np.array(CorCoef_wave).reshape(SizeX,SizeY)
 
 
-%% pseudocolor plot CorCoef_wave and creation of the Mask_EMCCD
-C=CorCoef_wave;
-T=1;
-thld=mean(CorCoef_wave(:))+2.2*std(CorCoef_wave(:));%0.12;
-X=[1:size(C,2)];
-Y=[1:size(C,1)];
+    # creation of the Mask_EMCCD - pass 2.2 as parameter before.
+    thld=CorCoef_wave.mean()+2.2*CorCoef_wave.std();
+    
+    Mask_EMCCD = 1.0*CorCoef_wave
+    Mask_EMCCD[CorCoef_wave<thld]=0
+    Mask_EMCCD[CorCoef_wave>=thld]=1
+    
+    #figure;
+    #imshow(Mask_EMCCD);
+    #X=[1:size(C,2)];
+    #Y=[1:size(C,1)];
 
-if T
-    C(C<thld)=0;
-    C(C>=thld)=1;
-    Mask_EMCCD=C;
-    figure;
-    imshow(Mask_EMCCD);
-else
-figure('position', [400, 50, 800, 800]);
-pcolor(X,Y,C)    
-end
+    # ~ figure('position', [400, 50, 800, 800]);
+    # ~ pcolor(X,Y,C)    
+    # ~ end
 
-clearvars X Y C thld T
+    # Filter and Expand the Mask
+    temp1=movmean (Mask_EMCCD,5,1,'omitnan');
+    temp2=movmean (temp1,5,2,'omitnan');
+    temp3=Mask_EMCCD;
+    temp3(temp2<=0.15)=nan;
+    temp3(temp3==0)=nan;
 
-%% 
-
-% Filter and Expand the Mask
-temp1=movmean (Mask_EMCCD,5,1,'omitnan');
-temp2=movmean (temp1,5,2,'omitnan');
-temp3=Mask_EMCCD;
-temp3(temp2<=0.15)=nan;
-temp3(temp3==0)=nan;
-
-temp1=movmean (temp3,f,1,'omitnan');
-Mask_EMCCD_exp=movmean (temp1,f,2,'omitnan');
+    temp1=movmean (temp3,f,1,'omitnan');
+    Mask_EMCCD_exp=movmean (temp1,f,2,'omitnan');
 
 % figure;
 % imshow(Mask_EMCCD);
