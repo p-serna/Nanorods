@@ -1,6 +1,6 @@
 from numpy import *
 from matplotlib.pylab import *
-import pytiff
+#import pytiff
 from scipy.optimize import minimize,least_squares
 import cv2
 from codecs import open as copen
