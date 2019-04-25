@@ -84,7 +84,7 @@ def extractpeaks2d(img,kernel=7,width=None,height=None):
         height, width = img.shape
     if type(kernel) is int:
         kernelm = ones((kernel,kernel),float32)/float(kernel)**2
-    elif type(kernel) is numpy.ndarray:
+    elif type(kernel) is ndarray:
         kernelm = kernel
     else:
         print("Error kernel")

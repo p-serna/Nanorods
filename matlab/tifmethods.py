@@ -18,7 +18,7 @@ def readBigTifFile(fname):
     offset = imf[273][0]
     with open(fname,"rb") as file:
         file.seek(offset)
-        temp = fromfile(file,dtype=">u2")
+        temp = np.fromfile(file,dtype=">u2")
 
     temp = temp[:size].reshape((nframes,height,width))
     return(temp)
