@@ -35,9 +35,10 @@ def readtifInfo(fname,verbose=True,maxlength = 500):
         if len(str(imf[key]))<maxlength:
             #keys.append(key)
             info[key] = imf[key]
-            print(key,':',imf[key])
+            #print(key,':',imf[key])
         else:
-            print(key,': _too long to print and to store_')
+            #print(key,': _too long to print and to store_')
+            pass
     return(info)
     
 def gettimes(fname,nframes=None):

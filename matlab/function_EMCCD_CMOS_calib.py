@@ -1,9 +1,10 @@
 import os
-import warning
+#import warning
 import numpy as np
 from scipy.stats import  linregress
+from matlab.tifmethods import readtifImage
 import csv
-from CenterROIS import CenterROIS
+from matlab.CenterROIs import centerROIs
 
 def ReadCSV(fname):
     rows = []
@@ -58,8 +59,8 @@ def EMCCD_CMOS_calib(folder = './',csv = True, ROIsize=9):
         fCMOS, fEMCCD = names
     
         # Change these lines to appropiate reading of tif files:
-        CMOS = imread(folder+fCMOS)
-        EMCCD= imread(folder+fEMCCD)
+        CMOS = readtifImage(folder+fCMOS)
+        EMCCD= readtifImage(folder+fEMCCD)
     
         CMOS = CMOS[:,:CMOS.shape[1]//2]
     
@@ -73,8 +74,8 @@ def EMCCD_CMOS_calib(folder = './',csv = True, ROIsize=9):
             EMCCD_pts  = ReadCSV(fEMCCD)
         
         #CenterROIs function
-        CMOS_pts_center=CenterROIS(CMOS,CMOS_pts,ROIsize)
-        EMCCD_pts_center=CenterROIs(EMCCD,EMCCD_pts,ROIsize)
+        CMOS_pts_center=centerROIS(CMOS,CMOS_pts,ROIsize)
+        EMCCD_pts_center=centerROIs(EMCCD,EMCCD_pts,ROIsize)
         ptsC.append(CMOS_pts_center)
         ptsE.append(EMCCD_pts_center)
 
