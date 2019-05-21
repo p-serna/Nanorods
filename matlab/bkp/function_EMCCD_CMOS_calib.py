@@ -51,50 +51,36 @@ def EMCCD_CMOS_calib(folder = './',csv = True, ROIsize=9):
     filesEMCCD = [file for file in files if file.find('EMCCD')>=0]
     if len(filesEMCCD)==0:
         raise ValueError('We stop, no files with EMCCD in their name, for '+name+'.')
-    
-    files = files_csv
-    filesCMOScsv = [file for file in files if file.find('CMOS')>=0]
-    if len(filesCMOS) == 0:
-        raise ValueError('Sorry, there are no files with CMOS in their name.')
-    
-    
-    filesEMCCDcsv = [file for file in files if file.find('EMCCD')>=0]
-    if len(filesEMCCD)==0:
-        raise ValueError('We stop, no files with EMCCD in their name, for '+name+'.')
+        
     
     ptsC = []
     ptsE = []
     for i,names in enumerate(zip(filesCMOS,filesEMCCD)): #real traces
         fCMOS, fEMCCD = names
+    
         # Change these lines to appropiate reading of tif files:
         CMOS = readtifImage(folder+fCMOS)
         EMCCD= readtifImage(folder+fEMCCD)
-         
+    
         CMOS = CMOS[:,:CMOS.shape[1]//2]
-        
+    
         if not csv:
             # Produce csv - pass it to subroutine    
             pass
         else:
             fCMOScsv, fEMCCDcsv =  (filesCMOScsv[i],filesEMCCDcsv[i])
             # Read positions of ROIS in csv files
-            CMOS_pts = ReadCSV(folder+fCMOScsv)
-            EMCCD_pts  = ReadCSV(folder+fEMCCDcsv)
-            
-            CMOS_pts= np.array(CMOS_pts[:,1:],dtype=int)
-            EMCCD_pts= np.array(EMCCD_pts[:,1:], dtype=int)
-            
+            CMOS_pts = ReadCSV(fCMOS)
+            EMCCD_pts  = ReadCSV(fEMCCD)
+        
         #CenterROIs function
-        CMOS_pts_center=centerROIs(CMOS,CMOS_pts,ROIsize)
+        CMOS_pts_center=centerROIS(CMOS,CMOS_pts,ROIsize)
         EMCCD_pts_center=centerROIs(EMCCD,EMCCD_pts,ROIsize)
-                    
-        if i==0:
-            ptsC = CMOS_pts_center
-            ptsE = EMCCD_pts_center
-        else:
-            ptsC = np.row_stack((ptsC,CMOS_pts_center))
-            ptsE = np.row_stack((ptsE,EMCCD_pts_center))
-            
+        ptsC.append(CMOS_pts_center)
+        ptsE.append(EMCCD_pts_center)
+
+    ptsC = np.array(ptsC)
+    ptsE = np.array(ptsE)
     Xc=ptsC[:,0]
     Yc=ptsC[:,1]
     Xe=ptsE[:,0]
@@ -106,6 +92,6 @@ def EMCCD_CMOS_calib(folder = './',csv = True, ROIsize=9):
 
     fitobject = linregress(Yc,Ye)
     #slope, intercept, r_value, p_value, std_err
-    ay, by, _, _, _ = fitobject
+    ax, bx, _, _, _ = fitobject
 
     return(ax,ay,bx,by)
