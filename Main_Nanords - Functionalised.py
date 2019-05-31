@@ -212,6 +212,9 @@ def main():
     # 
     # ### cMOS camera fields alignment
 
+    # ------------------------------------------------------------------
+    #
+    # EMCCD CMOS calibration
     f=3 #averaging factor for the mask
     ax, ay, bx, by = EMCCD_CMOS_calib(folder+foldercalib)
 
@@ -220,7 +223,9 @@ def main():
     # ### EMCCD mask generation
     # ### Transposition of mask two CMOS images
     # 
-
+    #-------------------------------------------------------------------
+    #
+    # Generating the mask
     info = readtifInfo(folder+file_Berst)
     NframesStr = [d for d in info[270].split('\n') if d.find('frames')>=0][0].split('=')[-1]
     Nframes = int(NframesStr)
@@ -229,7 +234,6 @@ def main():
     movie = readBigTifFile(folder+file_Berst)
     movie_sum = movie.sum(axis=0)
     SizeX,SizeY = movie_sum.shape
-
 
     # Get Coefficients
     CorCoef_wave = zeros((SizeX, SizeY))
@@ -247,8 +251,8 @@ def main():
     Mask_EMCCD[Mask_EMCCD>=thld]=1;
     #imshow(Mask_EMCCD);
 
-
-
+    #------------------------------------------
+    # Smoothing mask
 
     temp1=movavgx (Mask_EMCCD,5);
     temp2=movavgy (temp1,5);
@@ -264,20 +268,17 @@ def main():
     #figure()
     #imshow(temp3)
 
-
-
     f=3
     temp1=movavgx(temp3,f);
     Mask_EMCCD_exp=movavgy (temp1,f);
     #imshow(Mask_EMCCD_exp)
 
-
     #imshow(Mask_EMCCD_exp)
     #ylim(512,-10)
 
-
-
-
+    #------------------------------------------------------------------
+    #
+    # Transposing mask to CMOS
     Mask_CMOS=calib(Mask_EMCCD_exp, ax, ay, bx, by)
     #imshow(Mask_CMOS)
 
@@ -286,88 +287,47 @@ def main():
     # ### Local maxima detection
     # ### Blinking coefficient and selection
     # ### Neural-net?
-    # 
-
-
-
+    
     # In[ ]:
 
-
+    #------------------------------------------------------------------
+    #
+    # Calibration 2 fields in CMOS camera
     v = CMOS_2fields_calib(folder+foldercalib)
-
-
-    # In[ ]:
-
-
-    # ~ print(v)
-
-
-    # In[ ]:
-
 
     calibim = readtifImage(folder+foldercalib+'calib_CMOS_2.tif')
 
-
-    # In[ ]:
-
-
     ptsB = extractpeaks2d0(calibim[:,:512])
-
-
-    # In[ ]:
-
-
     ptsR2 = 1.0*ptsB
     ptsR2[:,0] += 512+v[0]
     ptsR2[:,1] += v[1]
     # ~ visualization(calibim,row_stack((ptsB[:100,:],ptsR2[:100,:])))
 
-
-    # In[ ]:
-
-
     dx, dy = 512+v[0],v[1]
 
 
-    # In[ ]:
-
+    # ------------------------------------------------------------------
+    #
+    # Peak extraction
 
     #folder = r"C:\Users\ludwig\data\NR sample files\18_11_29_pd23_11_div6_WIS_NR-BeRST\image files"
     fname = fwave
     movie = readBigTifFile(folder+fname)
     movie_sum = movie.sum(axis=0) # sum(movie,axis=0)
 
-
-    # In[ ]:
-
-
     info = readtifInfo(folder+fname)
     NframesStr = [d for d in info[270].split('\n') if d.find('frames')>=0][0].split('=')[-1]
     Nframes = int(NframesStr)
-
-
-    # In[ ]:
-
 
     TacqStr = [d for d in info[270].split('\n') if d.find('finterval')>=0][0].split('=')[-1]
     Tacq = float(TacqStr)
 
 
-    # In[ ]:
-
-
-    # Generating stimulation trace
+    # Generating stimulation trace  - what is the use of this?
     Stim=tile([0, 0, -60, -60],Nframes//4);
 
 
-    # In[ ]:
-
-
     # ~ visualization(movie_sum)
-
-
-    # In[ ]:
-
 
     kernel = 5
     ROIsize=5
@@ -382,9 +342,6 @@ def main():
             J[x+rs2,y+rs2] = temp.max()
 
 
-    # In[ ]:
-
-
     mx,my = Mask_CMOS.shape
     pts = [] 
     for x in range(2*ROIsize+1,mx-2*ROIsize):
@@ -395,22 +352,11 @@ def main():
 
     pts = array(pts)
 
-
-    # In[ ]:
-
-
     # ~ visualization(movie_sum,pts,figsize=(14,14))
-
-
-    # In[ ]:
 
 
     x=pts[:,0]+dx
     y=pts[:,1]+dy
-
-
-    # In[ ]:
-
 
     sel = x+floor(ROIsize/2)<movie_sum.shape[1]
     sel = sel*(y+floor(ROIsize/2)<movie_sum.shape[0])
@@ -418,13 +364,10 @@ def main():
     x = x[sel]
     y = y[sel]
 
-
-    # In[ ]:
-
-
     ptsr=column_stack((x,y))
     ptsb=pts*1
     pts_all=row_stack((ptsb,ptsr))
+
     # ~ visualization(movie_sum,pts_all,figsize=(14,14))
 
 
@@ -438,35 +381,17 @@ def main():
 
 
 
+    #-------------------------------------------------------------------
+    #
+    # Signal extraction & classifying
+
     NROI=shape(pts_all)[0]
-
-
-    # In[ ]:
-
-
-
-
-
-    # In[ ]:
-
 
     Signal, Signal_2ch = extractLinearROIs(movie,pts_all, ROIsize)
     # ~ temp = randint(Signal_2ch.shape[1])
-
     # ~ plot(Signal_2ch[:,temp])
 
-
-    # In[ ]:
-
-
-    # In[ ]:
-
-
     classifier, ROI_selected = classifier0(Signal_2ch, threshold = 0.45)
-
-
-    # In[ ]:
-
 
     # ~ temp = randint(Signal_2ch.shape[1])
     # ~ #temp = 1
@@ -474,40 +399,23 @@ def main():
     # ~ print(temp,':',classifier[temp])
     # ~ print(ROI_selected)
 
-
-    # In[ ]:
-
-
-
-
-    # In[ ]:
-
-
     Signal_wave = getSignalsep(Signal,ROI_selected,NROI = NROI)
 
+    #---------------------------------
+    # Re-selection from classifier
     pts_blue=pts_all[ROI_selected,:]
     pts_red=pts_all[ROI_selected+NROI//2,:]
     pts=row_stack((pts_blue, pts_red))
 
+    # Same for the control movie
 
-    # In[ ]:
-
-
-    # Same for the control
     fname = fctrl
     movie = readBigTifFile(folder+fname)
     # Do we use same points: or we get new ones?
     Signalct, Signal_2ch_ctrl = extractLinearROIs(movie,pts_all, ROIsize)
     classifierct, ROI_selectedct = classifier0(Signal_2ch_ctrl, threshold = 0.45)
 
-
-    # In[ ]:
-
-
     # ~ print(ROI_selectedct, ROI_selected)
-
-
-    # In[ ]:
 
 
     ROI_sel=[]
