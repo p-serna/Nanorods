@@ -182,24 +182,20 @@ def get_treshold(Signal, NROI):
 
 
 
-def main():
-    windows = False
+def main(fnames = None):
 
-    if windows:
-        folder = r"C:\Users\ludwig\data\NR sample files\18_11_29_pd23_11_div6_WIS_NR-BeRST\image files"
-        fname = r"\wave\cell4_7.tif"
-        fwave = r"\wave\cell4_7.tif"
-        fctrl = r"\control\cell4_8.tif"
-        file_Berst='\cell4_BeRST.tif'
-        foldercalib = "\EMCCD-CMOS calib\\"
-    else:
-        folder = '/mnt/data/Anastasia/sample folder with NR data/image files/'
-        fname = 'wave/cell1_1.tif'
-        fwave = 'wave/cell1_1.tif'
-        fctrl = 'control/cell1_2.tif'
-        file_Berst='cell1_BeRST.tif'
-        foldercalib = "EMCCD-CMOS calib/"
-
+    if fnames is not None:
+        try:
+            folder = fnames['folder']
+            fname = fnames['fname']
+            fwave = fnames['fwave'] 
+            fctrl = fnames['fctrl'] 
+            file_Berst = fnames['file_Berst'] 
+            foldercalib = fnames['foldercalib'] 
+        except Exception as e:
+            print(e)
+            return
+            
     #Only to visualize it:
     #fname = folder+file_Berst
     #movie = readBigTifFile(folder+fname)
@@ -411,12 +407,11 @@ def main():
 
     fname = fctrl
     movie = readBigTifFile(folder+fname)
-    # Do we use same points: or we get new ones?
+    # We use previous positions, we do not want new NRs.
     Signalct, Signal_2ch_ctrl = extractLinearROIs(movie,pts_all, ROIsize)
     classifierct, ROI_selectedct = classifier0(Signal_2ch_ctrl, threshold = 0.45)
 
     # ~ print(ROI_selectedct, ROI_selected)
-
 
     ROI_sel=[]
     for i in ROI_selected:
@@ -425,16 +420,13 @@ def main():
     # ~ print(ROI_sel)
     ROI_sel=array(ROI_sel)
 
-
-    # In[ ]:
-
+    # Get signal in both separate channels and summed
 
     Signal_wave = getSignalsep(Signal,ROI_sel,NROI = NROI)
     Signal_ctrl = getSignalsep(Signalct,ROI_sel,NROI = NROI)
     NROI=shape(Signal_wave)[1]//2
     Signal_2ch_wave = Signal_wave[:,0:NROI] + Signal_wave[:,NROI:]
     Signal_2ch_ctrl = Signal_ctrl[:,0:NROI] + Signal_ctrl[:,NROI:]
-
 
     # ~ temp=randint(ROI_sel.shape[0])
     # ~ figure(figsize=(18,6))
@@ -444,43 +436,19 @@ def main():
     # ~ plot(arange(6000)*0.01+60,Signal_ctrl[:,temp])
     # ~ plot(arange(6000)*0.01+60,Signal_ctrl[:,temp+ROI_sel.shape[0]], alpha=.7)
 
-
-    # In[ ]:
-
-
-    # In[ ]:
-
-
+    # We get thresholds for each trace - fitting to 2 gaussians
 
     threshold_2ch_wave=get_treshold(Signal_2ch_wave, NROI)
     threshold_2ch_ctrl=get_treshold(Signal_2ch_ctrl, NROI)
-
-
-    # In[ ]:
-
 
     # ~ temp=randint(27)
     # ~ figure(figsize=(18,6))
     # ~ plot(arange(6000)*0.01,Signal_2ch_wave[:,temp])
     # ~ plot(arange(6000)*0.01, arange(6000)*0+threshold_2ch_wave[temp])
 
-
-    # In[ ]:
-
-
-    OnState_wave=Signal_2ch_wave<=threshold_2ch_wave
-    # ~ print(OnState_wave.sum(axis=0))
-
-
-    # In[ ]:
-
-
-    # ~ print(sum(Signal_2ch_wave[:,1]<threshold_2ch_wave[1]))
-
-
-    # In[ ]:
-
-
+    # We should name this thing offState? It is the array of offstate times
+    # And then we keep only onstate in signal
+    
     OnState_wave=Signal_2ch_wave<=threshold_2ch_wave
     Signal_2ch_OnState_wave=Signal_2ch_wave*1
     Signal_2ch_OnState_wave[OnState_wave]=nan;
@@ -490,17 +458,9 @@ def main():
     Signal_OnState_wave=Signal_wave*1;
     Signal_OnState_wave[OnState_wave_2]=nan;
 
-
-    # In[ ]:
-
-
     # ~ figure(figsize=(18,6))
     # ~ plot(arange(6000)*0.01,Signal_OnState_wave[:,temp])
     # ~ plot(arange(6000)*0.01,Signal_OnState_wave[:,temp+ROI_sel.shape[0]])
-
-
-    # In[ ]:
-
 
     OnState_ctrl=Signal_2ch_ctrl<=threshold_2ch_ctrl
     Signal_2ch_OnState_ctrl=Signal_2ch_ctrl*1
@@ -511,18 +471,14 @@ def main():
     Signal_OnState_ctrl=Signal_ctrl*1;
     Signal_OnState_ctrl[OnState_ctrl_2]=nan;
 
-
-    # In[ ]:
-
+    # To get the ratio traces
 
     Ratio_wave=zeros((Nframes,NROI))
     Ratio_wave=Signal_OnState_wave[:,0:NROI]/Signal_2ch_OnState_wave
     Ratio_ctrl=zeros((Nframes,NROI))
     Ratio_ctrl=Signal_OnState_ctrl[:,0:NROI]/Signal_2ch_OnState_ctrl
 
-
-    # In[ ]:
-
+    # We get FFT scores
 
     split_wave=nanmean(Ratio_wave, axis=0)
     Sig_FFT_wave=zeros((Nframes,NROI))
@@ -538,14 +494,39 @@ def main():
     ind=arange(split_ctrl.shape[0])[split_ctrl<=0.5]
     Sig_FFT_ctrl[:,ind]=Signal_OnState_ctrl[:,NROI+ind]
 
-
-
-
     score_FFT=FFT_score(Sig_FFT_wave,Tacq)
 
     return(score_FFT)
 
 
 if __name__ == '__main__':
-    main()
+    
+    windows = False
+
+    if windows:
+        folder = r"C:\Users\ludwig\data\NR sample files\18_11_29_pd23_11_div6_WIS_NR-BeRST\image files"
+        fname = r"\wave\cell4_7.tif"
+        fwave = r"\wave\cell4_7.tif"
+        fctrl = r"\control\cell4_8.tif"
+        file_Berst='\cell4_BeRST.tif'
+        foldercalib = "\EMCCD-CMOS calib\\"
+    else:
+        folder = '/mnt/data/Anastasia/sample folder with NR data/image files/'
+        fname = 'wave/cell1_1.tif'
+        fwave = 'wave/cell1_1.tif'
+        fctrl = 'control/cell1_2.tif'
+        file_Berst='cell1_BeRST.tif'
+        foldercalib = "EMCCD-CMOS calib/"
+    
+    fnames = {}
+    fnames['folder'] = folder
+    fnames['fname'] = fname
+    fnames['fwave'] = fwave
+    fnames['fctrl'] = fctrl
+    fnames['file_Berst'] = file_Berst
+    fnames['foldercalib'] = foldercalib
+    
+    
+    
+    main(fnames)
     
