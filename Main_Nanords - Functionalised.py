@@ -251,10 +251,6 @@ def main(fnames = None):
     print('Calibration parameters',ax, ay,bx, by)
 
     # ### EMCCD mask generation
-    # ### Transposition of mask two CMOS images
-    # 
-    #-------------------------------------------------------------------
-    #
     # Generating the mask
     info = readtifInfo(folder+file_Berst)
     NframesStr = [d for d in info[270].split('\n') if d.find('frames')>=0][0].split('=')[-1]
