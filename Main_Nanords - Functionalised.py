@@ -158,18 +158,52 @@ def dblgausfit(x,y,wy=1.0,par0=array([sqrt(0.5),-1,.5,1,.5])):
 
 # In[ ]:
 
+def generatemask(folder,file_Berst, smf0 = 5,smf1 = 3):
+    info = readtifInfo(folder+file_Berst)
+    NframesStr = [d for d in info[270].split('\n') if d.find('frames')>=0][0].split('=')[-1]
+    Nframes = int(NframesStr)
+    Stim=tile([-60, 0],Nframes//2)
+
+    movie = readBigTifFile(folder+file_Berst)
+    movie_sum = movie.sum(axis=0)
+    SizeX,SizeY = movie_sum.shape
+
+    # Get Coefficients
+    CorCoef_wave = zeros((SizeX, SizeY))
+    for x in range(SizeX):
+        for y in range(SizeY):
+            temp = corrcoef(movie[:,x,y],Stim)
+            CorCoef_wave[x,y]=temp[1,0]
+
+    thld=mean(CorCoef_wave)+2.2*std(CorCoef_wave)
+    Mask_EMCCD=CorCoef_wave*1
+    Mask_EMCCD[Mask_EMCCD<thld]=0
+    Mask_EMCCD[Mask_EMCCD>=thld]=1
+    #------------------------------------------
+    # Smoothing mask
+
+    temp1=movavgx (Mask_EMCCD,smf0)
+    temp2=movavgy (temp1,smf0)
+    temp=temp2.flatten()
+    temp3=Mask_EMCCD*1
+    temp3[temp2<=0.15]=nan
+    temp3[temp3==0]=nan
+
+    temp1=movavgx(temp3,smf1)
+    Mask_EMCCD_exp=movavgy(temp1,smf1)
+    return(Mask_EMCCD_exp)
 
 def get_treshold(Signal, NROI):
     threshold=zeros(NROI)
     for j in range(NROI):
         A, edges=histogram(Signal[:,j],40, density=True)
         xData, yData = edges[0:-1], A
-        sig_mean=mean(Signal[:,j]);
-        sig_std=std(Signal[:,j]);
-        seed=array([1/2, sig_mean-sig_std, sig_std/2, sig_mean+sig_std, sig_std/2]);
+        sig_mean=mean(Signal[:,j])
+        sig_std=std(Signal[:,j])
+        seed=array([1/2, sig_mean-sig_std, sig_std/2, sig_mean+sig_std, sig_std/2])
 
-        fitresult = dblgausfit(xData, yData, par0=seed);
-        _, lm, ls, hm, hs=fitresult.x;
+        fitresult = dblgausfit(xData, yData, par0=seed)
+        _, lm, ls, hm, hs=fitresult.x
         if lm>hm:
             tm, ts = lm, ls
             lm, ls = hm, hs
@@ -177,7 +211,7 @@ def get_treshold(Signal, NROI):
         if lm+ls*2<hm:
             threshold[j]=lm+ls*2
         else:
-            threshold[j]=mean(lm, hm);
+            threshold[j]=mean(lm, hm)
     return threshold
 
 
@@ -225,7 +259,7 @@ def main(fnames = None):
     info = readtifInfo(folder+file_Berst)
     NframesStr = [d for d in info[270].split('\n') if d.find('frames')>=0][0].split('=')[-1]
     Nframes = int(NframesStr)
-    Stim=tile([-60, 0],Nframes//2);
+    Stim=tile([-60, 0],Nframes//2)
 
     movie = readBigTifFile(folder+file_Berst)
     movie_sum = movie.sum(axis=0)
@@ -236,37 +270,37 @@ def main(fnames = None):
     for x in range(SizeX):
         for y in range(SizeY):
             temp = corrcoef(movie[:,x,y],Stim)
-            CorCoef_wave[x,y]=temp[1,0];
+            CorCoef_wave[x,y]=temp[1,0]
 
     #imshow(CorCoef_wave, cmap='hot')
     #colorbar()
 
     thld=mean(CorCoef_wave)+2.2*std(CorCoef_wave)
     Mask_EMCCD=CorCoef_wave*1
-    Mask_EMCCD[Mask_EMCCD<thld]=0;
-    Mask_EMCCD[Mask_EMCCD>=thld]=1;
+    Mask_EMCCD[Mask_EMCCD<thld]=0
+    Mask_EMCCD[Mask_EMCCD>=thld]=1
     #imshow(Mask_EMCCD);
 
     #------------------------------------------
     # Smoothing mask
 
-    temp1=movavgx (Mask_EMCCD,5);
-    temp2=movavgy (temp1,5);
+    temp1=movavgx (Mask_EMCCD,5)
+    temp2=movavgy (temp1,5)
     #imshow(temp1)
     #figure()
     #imshow(temp2)
     #figure()
     temp=temp2.flatten()
     #hist(temp[temp>0],51)
-    temp3=Mask_EMCCD*1;
-    temp3[temp2<=0.15]=nan;
-    temp3[temp3==0]=nan;
+    temp3=Mask_EMCCD*1
+    temp3[temp2<=0.15]=nan
+    temp3[temp3==0]=nan
     #figure()
     #imshow(temp3)
 
     f=3
-    temp1=movavgx(temp3,f);
-    Mask_EMCCD_exp=movavgy (temp1,f);
+    temp1=movavgx(temp3,f)
+    Mask_EMCCD_exp=movavgy (temp1,f)
     #imshow(Mask_EMCCD_exp)
 
     #imshow(Mask_EMCCD_exp)
