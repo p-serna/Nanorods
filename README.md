@@ -1,5 +1,10 @@
-# Nanorods
-## Introduction
-Nanorods - semiconductor voltage nanosensors
+# Voltage-sensitive nanorods for voltage imaging in neurons
+Repository for analysis of data from vsNRs published in ..
 
-this is a description of the code
+## About
+
+
+## Getting started
+
+The scripts that follow the analysis protocol, explained in the manuscript, are aranged in Main_nanords.ipynb
+
