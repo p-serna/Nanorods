@@ -6,5 +6,5 @@ Repository for analysis of data from vsNRs published in ..
 
 ## Getting started
 
-The scripts that follow the analysis protocol, explained in the manuscript, are aranged in Main_nanords.ipynb
+The scripts that follow the analysis protocol, explained in the manuscript, are aranged in mainvsNRs.ipynb
 
