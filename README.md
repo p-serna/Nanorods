@@ -5,7 +5,7 @@ Repository for analysis of data from vsNRs published in ..
 
 The scripts we provide here can be used to follow the analysis protocol.
 
-<img src="img/figure0.png" alt="Protocol" style="width: 400px;"/>
+<img src="img/figure0.png" alt="Protocol" style="width: 300px;"/>
 
 
 
