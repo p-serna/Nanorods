@@ -5,7 +5,16 @@ Repository for analysis of data from vsNRs published in ..
 
 The scripts we provide here can be used to follow the analysis protocol.
 
-<img src="img/figure0.png" alt="Protocol" style="width: 400px;"/>
+<img src="img/figure0.png" alt="Protocol" style="width: 200px;"/>
+
+They can be used to spot and classify blinking emitters in cells loaded with them
+
+<img src="img/cell.png" alt="Cell with putative vsNRs" style="width: 200px;"/>
+
+and analyse individual ROIs
+
+<img src="img/roi.gif" alt="ROI" style="width: 200px;"/>
+
 
 
 
