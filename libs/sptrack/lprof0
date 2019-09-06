@@ -1,0 +1,75 @@
+Timer unit: 1e-06 s
+
+Total time: 1.13346 s
+File: /export/home1/users/bssn/serna/GitIBENS/Nanorods/sptrack/msdestimate_longer.py
+Function: msdestimate at line 57
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+    57                                           def msdestimate(name,th = 0, th2 = 15.0,twoG = False,minlen = 500):
+    58         1       2469.0   2469.0      0.2      popts = load(name)
+    59         1          7.0      7.0      0.0      posx = popts[:,5]
+    60         1          3.0      3.0      0.0      posy = popts[:,6]
+    61         1          5.0      5.0      0.0      amp = popts[:,0]
+    62         1        254.0    254.0      0.0      sel = (popts[:,-1]==0)*(posx>0.1)*(posy>0.1)*(posx<4.9)*(posy<4.9)*(amp>exp(th))*(amp<exp(th2))
+    63         1          3.0      3.0      0.0      Tf = len(posx)
+    64                                               
+    65         1         35.0     35.0      0.0      if sel.sum() > minlen:
+    66         1          2.0      2.0      0.0          if twoG:
+    67                                                       m1,m2 = (mean(amp[sel]),std(amp[sel]))
+    68                                                       amb = (amp-m1)/m2
+    69                                                       am = (amp[sel]-m1)/m2
+    70                                                       h = histogram(am,arange(min(am),max(am),0.2))
+    71                                                       hd = h[0]/sum(h[0])/0.2
+    72                                                       hx = (h[1][1:]+h[1][:-1])/2.0
+    73                                                       dgfit = dblgausfit(hx,hd,par0=array([0.5,-1,.5,1,.5]))
+    74                                                       dgt = concatenate(([m1,m2],dgfit.x))
+    75                                                       s1 = max(dgt[6],dgt[4])
+    76                                                       yt = abs((dgt[3]-dgt[5])/s1)
+    77                                                       if dgt[5]<dgt[3]:
+    78                                                           temp= ()
+    79                                                       
+    80                                                       sel2 = sel*(amb>min(dgt[5]+2*dgt[6],dgt[3]+2*dgt[4]))
+    81                                                       if sel2.sum()<500:
+    82                                                           sel2 = sel*(amb>max(dgt[5]-2*dgt[6],dgt[3]-2*dgt[4]))
+    83                                                       if sel2.sum()>500:
+    84                                                           sel = sel2
+    85                                                   
+    86                                                   #ts is the index of posx, posy
+    87         1         63.0     63.0      0.0          ts = arange(Tf)[sel]
+    88         1          3.0      3.0      0.0          Tfn = ts[-1]
+    89         1         63.0     63.0      0.0          lp = sum(sel)
+    90                                                   
+    91                                           
+    92         1          3.0      3.0      0.0          tmax = popts.shape[0]//2
+    93         1         19.0     19.0      0.0          msd = zeros(tmax)
+    94         1         17.0     17.0      0.0          msd2 = zeros(tmax)
+    95         1          8.0      8.0      0.0          cnt = zeros(tmax)
+    96      5996      19477.0      3.2      1.7          for i,t in enumerate(ts[:-5]):
+    97                                                       #print(i,t)
+    98                                                       # For each i, and and t (= i or i+ #dropped frames)
+    99                                                       # we get i2 = i + maximum time used to estimate MSD 
+   100                                                       # clipped to the array length
+   101      5995      27574.0      4.6      2.4              i2 = min(i+tmax,lp)
+   102                                                       # Now we get the indices for them
+   103      5995      20713.0      3.5      1.8              sel = ts[i:i2]
+   104                                                       # Difference in time for those indices
+   105      5995      67503.0     11.3      6.0              t2 = ts[i:i2]-t
+   106                                                       # We keep only indices for those s
+   107      5995      87475.0     14.6      7.7              sel = sel[t2<tmax]
+   108      5995      77489.0     12.9      6.8              t2 = t2[t2< tmax]
+   109                                                       
+   110      5995      68420.0     11.4      6.0              xs = posx[sel]
+   111      5995      57649.0      9.6      5.1              ys = posy[sel]
+   112      5995     278707.0     46.5     24.6              msd[t2] += (xs-xs[0])**2+(ys-ys[0])**2
+   113      5995     289998.0     48.4     25.6              msd2[t2] += ((xs-xs[0])**2+(ys-ys[0])**2)**2
+   114      5995     135437.0     22.6     11.9              cnt[t2] += 1
+   115                                           
+   116                                                   #t = arange(tmax)
+   117                                           
+   118         1         32.0     32.0      0.0          msd01 = array(msd/cnt)
+   119         1         22.0     22.0      0.0          msd01b = array(msd2/cnt)
+   120         1          4.0      4.0      0.0          cnt01 = array(cnt)
+   121         1          2.0      2.0      0.0          return(msd01,msd01b,cnt01)
+   122                                               else:
+   123                                                   return(nan,nan,nan)
