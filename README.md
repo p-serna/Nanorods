@@ -1,6 +1,5 @@
 # Voltage-sensitive nanorods for voltage imaging in neurons
-Repository for analysis of data from vsNRs published in ..
-
+Repository for data analysis used in [Feasibility analysis of semiconductor voltage nanosensors for neuronal membrane potential sensing](https://www.biorxiv.org/content/10.1101/838342v1)
 ## About
 
 The scripts we provide here can be used to follow the analysis protocol.
