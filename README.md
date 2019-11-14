@@ -23,7 +23,7 @@ and analyse individual ROIs
 
 ## Getting started
 
-A simple way to start is by following jupyter notebook (mainvsNRs.ipynb) were the workflow has been aranged.
+A simple way to start is by following jupyter notebook (mainvsNRs.ipynb) where the workflow has been aranged.
 
 The folders containing adquired images and videos have to follow the structure
 ```
